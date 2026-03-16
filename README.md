@@ -1,37 +1,47 @@
-# 音乐播放器后端 API
+# 音乐播放器后端服务
 
-基于 Node.js + Express + MySQL 构建的音乐播放器后端服务。
+🎵 基于 Express + MySQL + JWT 的音乐播放器后端 API
 
 ## 技术栈
 
-- Node.js
-- Express.js
-- MySQL
-- CORS
+| 技术 | 版本 | 说明 |
+|------|------|------|
+| Node.js | 18+ | 运行环境 |
+| Express | ^4.18.2 | Web 框架 |
+| MySQL2 | ^3.6.5 | 数据库驱动 |
+| JWT | latest | 认证机制 |
+| CORS | ^2.8.5 | 跨域处理 |
+| Multer | latest | 文件上传 |
 
 ## 项目结构
 
 ```
 backend/
 ├── src/
-│   ├── config/          # 配置文件
-│   │   ├── database.js     # 数据库连接
-│   │   └── initDatabase.js # 数据库初始化
-│   ├── controllers/      # 控制器层
-│   │   ├── songController.js
-│   │   └── playlistController.js
-│   ├── models/          # 数据模型层
-│   │   ├── Song.js
-│   │   └── Playlist.js
-│   ├── routes/          # 路由层
-│   │   ├── songRoutes.js
-│   │   └── playlistRoutes.js
-│   ├── middleware/      # 中间件
-│   │   └── errorHandler.js
-│   └── app.js          # 应用入口
-├── .env               # 环境变量
-├── package.json
-└── README.md
+│   ├── app.js                 # 应用入口
+│   ├── config/
+│   │   ├── database.js        # 数据库配置
+│   │   ├── initDatabase.js    # 数据库初始化
+│   │   └── upload.js          # 文件上传配置
+│   ├── controllers/
+│   │   ├── authController.js      # 认证控制器 (JWT)
+│   │   ├── songAdminController.js # 歌曲管理
+│   │   ├── playlistAdminController.js # 歌单管理
+│   │   ├── songController.js      # 歌曲查询
+│   │   └── playlistController.js  # 歌单查询
+│   ├── middleware/
+│   │   └── errorHandler.js    # 错误处理
+│   ├── routes/
+│   │   ├── adminRoutes.js     # 管理后台路由
+│   │   ├── authRoutes.js      # 认证路由
+│   │   ├── songRoutes.js      # 歌曲路由
+│   │   └── playlistRoutes.js  # 歌单路由
+│   └── utils/
+│       └── fileUtils.js       # 文件工具
+├── uploads/                   # 上传文件目录
+├── .env                       # 环境变量
+├── .gitignore                 # Git 忽略配置
+└── package.json               # 项目配置
 ```
 
 ## 快速开始
@@ -42,16 +52,32 @@ backend/
 npm install
 ```
 
-### 2. 配置数据库
+### 2. 配置环境变量
 
-编辑 `.env` 文件，配置数据库连接信息：
+复制 `.env.example` 为 `.env` 并修改：
 
 ```env
+# 服务器配置
+PORT=3000
+NODE_ENV=development
+
+# 数据库配置
 DB_HOST=localhost
 DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=your_password
 DB_NAME=music_player
+
+# JWT 配置
+JWT_SECRET=your-super-secret-key-min-32-characters
+JWT_EXPIRES_IN=24h
+
+# CORS 配置
+CORS_ORIGIN=http://localhost:5173
+
+# 管理员账号
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=admin123
 ```
 
 ### 3. 初始化数据库
@@ -63,141 +89,148 @@ npm run init-db
 ### 4. 启动服务
 
 ```bash
+# 开发模式（热重载）
 npm run dev
-```
 
-开发模式使用 nodemon 自动重启，生产模式使用：
-
-```bash
+# 生产模式
 npm start
 ```
 
-## API 接口
+服务启动后访问：http://localhost:3000
 
-### 歌曲接口
+## API 文档
 
-| 方法 | 路径 | 说明 |
-|------|--------|------|
-| GET | `/api/songs` | 获取所有歌曲 |
-| GET | `/api/songs/:id` | 获取单首歌曲 |
-| GET | `/api/songs/search?query=xxx` | 搜索歌曲 |
-| POST | `/api/songs` | 创建歌曲 |
-| PUT | `/api/songs/:id` | 更新歌曲 |
-| DELETE | `/api/songs/:id` | 删除歌曲 |
+### 认证相关
 
-### 歌单接口
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| POST | `/api/auth/admin/login` | 管理员登录 | 否 |
+| GET | `/api/auth/admin/me` | 获取当前管理员 | 是 |
+| POST | `/api/auth/admin/logout` | 登出 | 是 |
 
-| 方法 | 路径 | 说明 |
-|------|--------|------|
-| GET | `/api/playlists` | 获取所有歌单 |
-| GET | `/api/playlists/:id` | 获取歌单详情 |
-| POST | `/api/playlists` | 创建歌单 |
-| PUT | `/api/playlists/:id` | 更新歌单 |
-| DELETE | `/api/playlists/:id` | 删除歌单 |
-| POST | `/api/playlists/:id/songs` | 添加歌曲到歌单 |
-| DELETE | `/api/playlists/:id/songs/:songId` | 从歌单移除歌曲 |
+**登录请求示例：**
+```json
+POST /api/auth/admin/login
+{
+  "username": "admin",
+  "password": "admin123"
+}
+```
 
-### 健康检查
-
-| 方法 | 路径 | 说明 |
-|------|--------|------|
-| GET | `/health` | 服务器健康检查 |
-
-## 响应格式
-
-### 成功响应
-
+**登录响应示例：**
 ```json
 {
   "success": true,
-  "data": { ... },
-  "message": "操作成功"
+  "message": "登录成功",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIs...",
+    "username": "admin",
+    "role": "admin"
+  }
 }
 ```
 
-### 错误响应
+### 歌曲管理（需要认证）
 
-```json
-{
-  "success": false,
-  "message": "错误信息",
-  "error": "详细错误"
-}
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/admin/songs` | 获取所有歌曲 |
+| POST | `/api/admin/songs` | 上传歌曲 |
+| PUT | `/api/admin/songs/:id` | 更新歌曲 |
+| DELETE | `/api/admin/songs/:id` | 删除歌曲 |
+
+**上传歌曲请求：**
+```bash
+curl -X POST http://localhost:3000/api/admin/songs \
+  -H "Authorization: Bearer <token>" \
+  -F "title=歌曲名称" \
+  -F "artist=艺术家" \
+  -F "audio=@song.mp3" \
+  -F "cover=@cover.jpg"
 ```
+
+### 歌单管理（需要认证）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/admin/playlists` | 获取所有歌单 |
+| POST | `/api/admin/playlists` | 创建歌单 |
+| PUT | `/api/admin/playlists/:id` | 更新歌单 |
+| DELETE | `/api/admin/playlists/:id` | 删除歌单 |
+| GET | `/api/admin/playlists/:id` | 获取歌单详情 |
+| GET | `/api/admin/playlists/:id/songs` | 获取可添加的歌曲 |
+| POST | `/api/admin/playlists/:id/songs` | 添加歌曲到歌单 |
+| DELETE | `/api/admin/playlists/:id/songs/:songId` | 从歌单移除歌曲 |
+
+### 公开接口（无需认证）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/songs` | 获取歌曲列表 |
+| GET | `/api/songs/:id` | 获取歌曲详情 |
+| GET | `/api/playlists` | 获取歌单列表 |
+| GET | `/api/playlists/:id` | 获取歌单详情 |
+| GET | `/health` | 健康检查 |
+
+## 认证说明
+
+本项目使用 **JWT Token** 进行认证：
+
+1. 登录成功后获取 `token`
+2. 后续请求在 Header 中携带：
+   ```
+   Authorization: Bearer <token>
+   ```
+3. Token 默认 24 小时过期
 
 ## 数据库表结构
 
-### songs 表
-
+### songs（歌曲表）
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| id | VARCHAR(50) | 主键 |
-| title | VARCHAR(255) | 歌曲标题 |
-| artist | VARCHAR(255) | 艺术家 |
-| album | VARCHAR(255) | 专辑 |
-| duration | INT | 时长（秒） |
-| cover_url | VARCHAR(500) | 封面 URL |
-| audio_url | VARCHAR(500) | 音频 URL |
+| id | VARCHAR | 主键 |
+| title | VARCHAR | 歌曲标题 |
+| artist | VARCHAR | 艺术家 |
+| album | VARCHAR | 专辑 |
+| duration | INT | 时长（秒）|
+| audioUrl | VARCHAR | 音频文件路径 |
+| coverUrl | VARCHAR | 封面图片路径 |
+| createdAt | DATETIME | 创建时间 |
 
-### playlists 表
-
+### playlists（歌单表）
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| id | VARCHAR(50) | 主键 |
-| name | VARCHAR(255) | 歌单名称 |
+| id | VARCHAR | 主键 |
+| name | VARCHAR | 歌单名称 |
 | description | TEXT | 描述 |
-| cover_url | VARCHAR(500) | 封面 URL |
+| coverUrl | VARCHAR | 封面路径 |
+| createdAt | DATETIME | 创建时间 |
 
-### playlist_songs 表
-
+### playlist_songs（歌单歌曲关联表）
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| id | INT | 主键 |
-| playlist_id | VARCHAR(50) | 歌单 ID（外键） |
-| song_id | VARCHAR(50) | 歌曲 ID（外键） |
-| position | INT | 排序位置 |
+| playlistId | VARCHAR | 歌单ID |
+| songId | VARCHAR | 歌曲ID |
+| addedAt | DATETIME | 添加时间 |
 
-## 环境变量
-
-| 变量 | 默认值 | 说明 |
-|------|---------|------|
-| PORT | 3000 | 服务器端口 |
-| NODE_ENV | development | 运行环境 |
-| DB_HOST | localhost | 数据库主机 |
-| DB_PORT | 3306 | 数据库端口 |
-| DB_USER | root | 数据库用户名 |
-| DB_PASSWORD | - | 数据库密码 |
-| DB_NAME | music_player | 数据库名称 |
-| CORS_ORIGIN | http://localhost:5173 | CORS 允许的源 |
-
-## 开发
+## 脚本命令
 
 ```bash
-# 安装依赖
-npm install
-
-# 初始化数据库
-npm run init-db
-
-# 启动开发服务器
-npm run dev
-```
-
-## 生产部署
-
-```bash
-# 安装依赖
-npm install --production
-
-# 设置生产环境变量
-export NODE_ENV=production
-
-# 启动服务器
-npm start
+npm start          # 启动服务
+npm run dev        # 开发模式（热重载）
+npm run init-db    # 初始化数据库
+npm test           # 运行测试
+npm run test:watch # 监听测试
+npm run test:coverage # 测试覆盖率
 ```
 
 ## 注意事项
 
-1. 确保 MySQL 服务已启动
-2. 确保 `.env` 文件中的数据库配置正确
-3. 前端需要配置正确的 `VITE_API_BASE_URL`
+1. **生产环境**：务必修改 `JWT_SECRET` 和默认管理员密码
+2. **文件上传**：上传的文件存储在 `uploads/` 目录
+3. **数据库**：确保 MySQL 服务已启动且配置正确
+4. **CORS**：如需跨域，修改 `CORS_ORIGIN` 配置
+
+## License
+
+MIT
